@@ -341,7 +341,7 @@ c=(arr&&arr.length)?parseWav(arr):new Int16Array(0);
 if(clipCache.size>4000)clipCache.clear();
 clipCache.set(k,c);return c;
 }
-function ttsURL(t,lang){return "/api/tts?lang="+lang+"&g="+(S.ttsG==="m"?"m":"f")+"&v=3&text="+encodeURIComponent(t)}
+function ttsURL(t,lang){return "/api/speak?lang="+lang+"&g="+(S.ttsG==="m"?"m":"f")+"&v=4&text="+encodeURIComponent(t)}
 function ttsLang(text,kind){if(/[\u0400-\u04ff]/.test(text))return "ru";return kind==="meaning"?"uz":"en"}
 function splitText(t,max){const out=[];let cur="";t.split(/\s+/).forEach(w=>{if(!w)return;if((cur+" "+w).trim().length>max){if(cur)out.push(cur);cur=w.slice(0,max)}else cur=(cur+" "+w).trim()});if(cur)out.push(cur);return out.length?out:[t.slice(0,max)]}
 function decodeMp3(buf){

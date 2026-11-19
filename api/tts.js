@@ -21,7 +21,7 @@ async function handle(req, res) {
   const q = req.query || {};
   const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
   let lang = String(q.l || "en");
-  if (q.ping) return res.status(200).json({ ok: true, node: process.version });
+  if (q.ping) return res.status(200).json({ ok: true, node: process.version, build: 7 });
   if (!text) return res.status(400).json({ error: "No text" });
   if (q.probe) {
     const t0 = Date.now();

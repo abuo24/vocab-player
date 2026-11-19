@@ -51,11 +51,11 @@ module.exports = async (req, res) => {
       const r = await get("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=hello", 3000);
       return res.status(200).json({ g: { status: r.status, type: r.type, bytes: r.body ? r.body.length : 0, error: r.error } });
     }
-    return res.status(200).json({ ok: true, build: 9 });
+    return res.status(200).json({ ok: true, build: 10 });
   }
 
-  const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
-  let lang = String(q.l || "en");
+  const text = String(q.text || q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
+  let lang = String(q.lang || q.l || "en");
   if (!text) return res.status(400).json({ error: "No text" });
   if (!LANGS.has(lang)) lang = "en";
   if (q.echo) return res.status(200).json({ echo: true, text, lang });

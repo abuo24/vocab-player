@@ -353,7 +353,7 @@ const p=(async()=>{
 const outs=[];
 for(const t of splitText(text,180)){
 let r;
-try{r=await fetch("/api/tts?l="+lang+"&t="+encodeURIComponent(t))}catch(e){throw {code:"net"}}
+try{r=await fetch("/api/tts?lang="+lang+"&text="+encodeURIComponent(t))}catch(e){throw {code:"net"}}
 if(!r.headers.get("x-vocab"))throw {code:"no_api"};
 if(!r.ok)throw {code:"tts"};
 outs.push(await decodeMp3(await r.arrayBuffer()));

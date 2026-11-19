@@ -36,7 +36,7 @@ async function handle(req, res) {
         encodeURIComponent(text);
       const r = await fetch(url, {
         headers: { "User-Agent": UA, Referer: "https://translate.google.com/" },
-        signal: AbortSignal.timeout(4000),
+        signal: AbortSignal.timeout(q.debug ? 1500 : 4000),
       });
       const type = r.headers.get("content-type") || "";
       const buf = Buffer.from(await r.arrayBuffer());

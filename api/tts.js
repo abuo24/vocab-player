@@ -26,7 +26,7 @@ async function handle(req, res) {
   if (q.probe) {
     const t0 = Date.now();
     try {
-      const r = await fetch("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" + encodeURIComponent(text), { headers: { "User-Agent": UA, Referer: "https://translate.google.com/" }, signal: AbortSignal.timeout(2500) });
+      const r = await fetch("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" + encodeURIComponent(text), { headers: { "User-Agent": UA, Referer: "https://translate.google.com/" }, signal: AbortSignal.timeout(Number(q.ms) || 2500) });
       return res.status(200).json({ status: r.status, type: r.headers.get("content-type"), ms: Date.now() - t0 });
     } catch (e) {
       return res.status(200).json({ error: String((e && e.message) || e), ms: Date.now() - t0 });

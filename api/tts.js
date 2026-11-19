@@ -58,6 +58,7 @@ module.exports = async (req, res) => {
   let lang = String(q.l || "en");
   if (!text) return res.status(400).json({ error: "No text" });
   if (!LANGS.has(lang)) lang = "en";
+  if (q.echo) return res.status(200).json({ echo: true, text, lang });
 
   const order = lang === "uz" ? ["uz", "tr"] : [lang];
   const debug = [];

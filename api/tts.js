@@ -8,6 +8,15 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
 module.exports = async (req, res) => {
+  try {
+    return await handle(req, res);
+  } catch (e) {
+    res.setHeader("X-Vocab", "1");
+    return res.status(200).json({ ok: false, crash: String((e && e.stack) || e) });
+  }
+};
+
+async function handle(req, res) {
   res.setHeader("X-Vocab", "1");
   const q = req.query || {};
   const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
@@ -45,4 +54,4 @@ module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (q.debug) return res.status(200).json({ ok: false, debug });
   return res.status(502).json({ error: "Speech service unavailable" });
-};
+}

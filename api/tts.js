@@ -16,6 +16,7 @@ module.exports = async (req, res) => {
   if (!LANGS.has(lang)) lang = "en";
 
   const order = lang === "uz" ? ["uz", "tr"] : [lang];
+  const debug = [];
   for (const tl of order) {
     try {
       const url =
@@ -27,17 +28,19 @@ module.exports = async (req, res) => {
         headers: { "User-Agent": UA, Referer: "https://translate.google.com/" },
       });
       const type = r.headers.get("content-type") || "";
-      if (!r.ok || !type.includes("audio")) continue;
       const buf = Buffer.from(await r.arrayBuffer());
-      if (buf.length < 400) continue;
+      debug.push({ tl, status: r.status, type, bytes: buf.length });
+      if (!r.ok || !type.includes("audio") || buf.length < 400) continue;
+      if (q.debug) return res.status(200).json({ ok: true, debug });
       res.setHeader("Content-Type", "audio/mpeg");
       res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
       res.setHeader("X-Tts-Lang", tl);
       return res.status(200).send(buf);
     } catch (e) {
-      // try the next language
+      debug.push({ tl, error: String(e && e.message || e) });
     }
   }
   res.setHeader("Cache-Control", "no-store");
+  if (q.debug) return res.status(200).json({ ok: false, debug });
   return res.status(502).json({ error: "Speech service unavailable" });
 };

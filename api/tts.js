@@ -60,7 +60,7 @@ module.exports = async (req, res) => {
   if (!LANGS.has(lang)) lang = "en";
   if (q.echo) return res.status(200).json({ echo: true, text, lang });
 
-  const order = lang === "uz" ? ["uz", "tr"] : [lang];
+  const order = lang === "uz" ? ["tr"] : [lang];
   const debug = [];
   for (const tl of order) {
     const url =

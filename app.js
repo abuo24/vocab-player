@@ -10,10 +10,10 @@ const DEFAULT_SHEET="https://docs.google.com/spreadsheets/d/1h5_GkOlQGnab_c-i8sc
 const GD="Google Drive";
 const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-const defaults={rate:1,gap:1.5,repeat:1,sayWord:true,spell:false,sayMeaning:true,sayExample:true,wordAgain:false,wordVoice:"",meaningVoice:"auto",engine:"device",claudeVoice:"buttery",wakeLock:true,bg:IS_IOS,bgVoice:"native",shuffle:false,loop:true,filter:"all",quiz:false,dir:"en",mode:"all",book:"all",unit:"all",sheetLink:DEFAULT_SHEET,synced:false,lastSync:0};
+const defaults={rate:1,gap:1.5,repeat:1,sayWord:true,spell:false,sayMeaning:true,sayExample:true,wordAgain:false,wordVoice:"",meaningVoice:"auto",engine:"device",claudeVoice:"buttery",wakeLock:true,bg:IS_IOS,bgVoice:"natural",shuffle:false,loop:true,filter:"all",quiz:false,dir:"en",mode:"all",book:"all",unit:"all",sheetLink:DEFAULT_SHEET,synced:false,lastSync:0};
 const savedS=LS.get("settings",{});
 const S=Object.assign({},defaults,savedS);
-if(!savedS.bgv2){S.bgVoice="native";S.bgv2=true}
+if(!savedS.bgv3){S.bgVoice="natural";S.bgv2=true;S.bgv3=true}
 if(!("mode" in savedS))S.mode=(S.book&&S.book!=="all")?"book":"all";
 const saveS=()=>LS.set("settings",S);
 const str=v=>String(v==null?"":v).trim();
@@ -215,7 +215,7 @@ document.body.classList.toggle("playing",playing);
 }
 /* ---------- screen-off mode: real audio track (keeps playing when locked) ---------- */
 const JSD="https://cdn.jsdelivr.net/npm/mespeak@2.0.2/";
-const SR=16000,BG_MAX=200;
+const SR=24000,BG_MAX=150;
 let audio=null;
 function A(){
 if(audio)return audio;
@@ -333,10 +333,50 @@ c=(arr&&arr.length)?parseWav(arr):new Int16Array(0);
 if(clipCache.size>4000)clipCache.clear();
 clipCache.set(k,c);return c;
 }
+function ttsLang(text,kind){if(/[\u0400-\u04ff]/.test(text))return "ru";return kind==="meaning"?"uz":"en"}
+function splitText(t,max){const out=[];let cur="";t.split(/\s+/).forEach(w=>{if(!w)return;if((cur+" "+w).trim().length>max){if(cur)out.push(cur);cur=w.slice(0,max)}else cur=(cur+" "+w).trim()});if(cur)out.push(cur);return out.length?out:[t.slice(0,max)]}
+function decodeMp3(buf){
+const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+return new Promise((res,rej)=>{
+let ctx;try{ctx=new OAC(1,SR,SR)}catch(e){rej(e);return}
+let done=false;
+const ok=b=>{if(done)return;done=true;const f=b.getChannelData(0),o=new Int16Array(f.length);for(let i=0;i<f.length;i++){const v=f[i]<-1?-1:f[i]>1?1:f[i];o[i]=v*32767}res(o)};
+const bad=e=>{if(done)return;done=true;rej(e||{code:"decode"})};
+try{const pr=ctx.decodeAudioData(buf,ok,bad);if(pr&&pr.then)pr.then(ok,bad)}catch(e){bad(e)}
+});
+}
+function concatI16(arrs){let n=0;arrs.forEach(a=>n+=a.length);const o=new Int16Array(n);let k=0;arrs.forEach(a=>{o.set(a,k);k+=a.length});return o}
+function netClip(text,kind){
+const lang=ttsLang(text,kind),k="net|"+lang+"|"+text;
+if(clipCache.has(k))return clipCache.get(k);
+const p=(async()=>{
+const outs=[];
+for(const t of splitText(text,180)){
+let r;
+try{r=await fetch("/api/tts?l="+lang+"&t="+encodeURIComponent(t))}catch(e){throw {code:"net"}}
+if(!r.headers.get("x-vocab"))throw {code:"no_api"};
+if(!r.ok)throw {code:"tts"};
+outs.push(await decodeMp3(await r.arrayBuffer()));
+}
+return concatI16(outs);
+})();
+clipCache.set(k,p);p.catch(()=>clipCache.delete(k));
+return p;
+}
+async function pool(items,n,fn){let i=0;const run=async()=>{while(i<items.length){const it=items[i++];await fn(it)}};await Promise.all(Array.from({length:Math.min(n,items.length)},run))}
+async function getClip(ms,text,kind){
+if(T.net){try{return await netClip(text,kind)}catch(e){return new Int16Array(0)}}
+return clipFor(ms,text,kind);
+}
 async function renderTrack(ms,part,id){
 const segs=[],marks=[],items=[];let len=0;
 const sil=sec=>{const n=Math.round(sec*SR);if(n>0){segs.push(new Int16Array(n));len+=n}};
 const ans=answerKind();
+if(T.net){
+const jobs=[];part.forEach(qi=>{const it=words[qi];if(it)stepsFor(it).forEach(s=>jobs.push(s))});
+await pool(jobs,6,s=>netClip(s[1],s[0]).catch(()=>null));
+if(id!==T.buildId)return null;
+}
 for(const qi of part){
 const it=words[qi];if(!it)continue;
 items.push({t:len/SR,qi});
@@ -348,7 +388,7 @@ for(const [kind,text] of steps){
 const isAns=(ans==="word"?(kind==="word"||kind==="spell"):kind==="meaning");
 if(isAns&&!shown){sil(2.2);shown=true}
 marks.push({t:len/SR,qi,part:kind,reveal:shown});
-const c=clipFor(ms,text,kind);if(c.length){segs.push(c);len+=c.length}
+const c=await getClip(ms,text,kind);if(c.length){segs.push(c);len+=c.length}
 await wait(0);if(id!==T.buildId)return null;
 sil(kind==="word"?0.45:0.3);
 }
@@ -368,9 +408,19 @@ if(!queue.length)return;
 let order=queue.slice(pos);if(S.loop)order=order.concat(queue.slice(0,pos));
 const capped=order.length>BG_MAX;order=order.slice(0,BG_MAX);
 T.valid=true;T.building=true;playing=true;updatePlayBtn();requestWake();
+let ms=null;
+T.net=false;
+if(S.bgVoice==="natural"){
+setBgStatus("Preparing the natural voice\u2026");
+const it0=words[order[0]];
+try{await netClip(it0.w,"word");T.net=true}catch(e){T.net=false}
+if(id!==T.buildId)return;
+}
+if(!T.net){
+if(S.bgVoice==="natural")toast("Natural voice unavailable here, using the offline voice");
 setBgStatus("Loading the offline voice\u2026");
-let ms;
-try{ms=await loadEngine()}catch(e){
+}
+try{if(!T.net)ms=await loadEngine()}catch(e){
 if(id!==T.buildId)return;
 T.building=false;T.valid=false;playing=false;updatePlayBtn();
 setBgStatus("Couldn\u2019t load the offline voice. Check your internet and try again, or turn off Screen-off.","err");return;
@@ -378,7 +428,7 @@ setBgStatus("Couldn\u2019t load the offline voice. Check your internet and try a
 if(id!==T.buildId)return;
 let i=0,first=true;
 while(i<order.length){
-const n=first?6:40;first=false;
+const n=first?6:BG_MAX;first=false;
 const part=order.slice(i,i+n);
 const tr=await renderTrack(ms,part,id);
 if(id!==T.buildId)return;

@@ -3,64 +3,70 @@
 // GET /api/tts?l=en|uz|tr|ru&t=TEXT   (max 200 characters)
 // Uzbek falls back to Turkish when no Uzbek voice is available.
 
+const https = require("https");
+
 const LANGS = new Set(["en", "uz", "tr", "ru"]);
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
-module.exports = async (req, res) => {
-  try {
-    return await handle(req, res);
-  } catch (e) {
-    res.setHeader("X-Vocab", "1");
-    return res.status(200).json({ ok: false, crash: String((e && e.stack) || e) });
-  }
-};
+function get(url, ms) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => {
+      if (!done) {
+        done = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(
+        url,
+        { headers: { "User-Agent": UA, Referer: "https://translate.google.com/" } },
+        (r) => {
+          const chunks = [];
+          r.on("data", (c) => chunks.push(c));
+          r.on("end", () =>
+            finish({ status: r.statusCode, type: r.headers["content-type"] || "", body: Buffer.concat(chunks) })
+          );
+          r.on("error", (e) => finish({ error: String(e.message || e) }));
+        }
+      );
+      req.on("error", (e) => finish({ error: String(e.message || e) }));
+      req.setTimeout(ms, () => {
+        req.destroy();
+        finish({ error: "timeout" });
+      });
+    } catch (e) {
+      finish({ error: String((e && e.message) || e) });
+    }
+  });
+}
 
-async function handle(req, res) {
+module.exports = async (req, res) => {
   res.setHeader("X-Vocab", "1");
   const q = req.query || {};
+  if (q.ping) return res.status(200).json({ ok: true, build: 8 });
+
   const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
   let lang = String(q.l || "en");
-  if (q.ping) return res.status(200).json({ ok: true, node: process.version, build: 7 });
   if (!text) return res.status(400).json({ error: "No text" });
-  if (q.probe) {
-    const t0 = Date.now();
-    try {
-      const r = await fetch("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" + encodeURIComponent(text), { headers: { "User-Agent": UA, Referer: "https://translate.google.com/" }, signal: AbortSignal.timeout(Number(q.ms) || 2500) });
-      return res.status(200).json({ status: r.status, type: r.headers.get("content-type"), ms: Date.now() - t0 });
-    } catch (e) {
-      return res.status(200).json({ error: String((e && e.message) || e), ms: Date.now() - t0 });
-    }
-  }
   if (!LANGS.has(lang)) lang = "en";
 
   const order = lang === "uz" ? ["uz", "tr"] : [lang];
   const debug = [];
   for (const tl of order) {
-    try {
-      const url =
-        "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" +
-        tl +
-        "&q=" +
-        encodeURIComponent(text);
-      const r = await fetch(url, {
-        headers: { "User-Agent": UA, Referer: "https://translate.google.com/" },
-        signal: AbortSignal.timeout(q.debug ? 1500 : 4000),
-      });
-      const type = r.headers.get("content-type") || "";
-      const buf = Buffer.from(await r.arrayBuffer());
-      debug.push({ tl, status: r.status, type, bytes: buf.length });
-      if (!r.ok || !type.includes("audio") || buf.length < 400) continue;
-      if (q.debug) return res.status(200).json({ ok: true, debug });
-      res.setHeader("Content-Type", "audio/mpeg");
-      res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
-      res.setHeader("X-Tts-Lang", tl);
-      return res.status(200).send(buf);
-    } catch (e) {
-      debug.push({ tl, error: String(e && e.message || e) });
-    }
+    const url =
+      "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=" + tl + "&q=" + encodeURIComponent(text);
+    const r = await get(url, 5000);
+    debug.push({ tl, status: r.status, type: r.type, bytes: r.body ? r.body.length : 0, error: r.error });
+    if (r.error || r.status !== 200 || !String(r.type).includes("audio") || r.body.length < 400) continue;
+    if (q.debug) return res.status(200).json({ ok: true, debug });
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
+    res.setHeader("X-Tts-Lang", tl);
+    return res.status(200).send(r.body);
   }
   res.setHeader("Cache-Control", "no-store");
   if (q.debug) return res.status(200).json({ ok: false, debug });
-  return res.status(502).json({ error: "Speech service unavailable" });
-}
+  return res.status(502).json({ error: "Speech service unavailable", debug });
+};

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vocab">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" href="/icons/icon-192.png">
+<title>Vocab Player</title>
+<meta name="description" content="Listen to your English&#x2013;Uzbek vocabulary like a playlist.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+<header class="top">
+<div class="brand">
+<div class="logo"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 18.5A2.5 2.5 0 1 1 6.5 16c.55 0 1.05.18 1.5.48V5.6l11-2.1v12.9A2.5 2.5 0 1 1 16.5 14c.55 0 1.05.18 1.5.48V7.7l-9 1.72z"/></svg></div>
+<div style="min-width:0"><h1>Vocab Player</h1><div class="sub" id="countLbl">No words yet</div></div>
+</div>
+<div class="top-actions">
+<span class="chip" id="syncChip">This device</span>
+<button class="icon-btn" id="syncBtn" aria-label="Sync from Google Sheet" title="Sync from Google Sheet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5M20 20v-4h-4"/></svg></button>
+<button class="icon-btn" id="importBtn" aria-label="Import" title="Import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></button>
+<button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+</div>
+</header>
+<div class="notice" id="notice"></div>
+<main class="layout">
+<section class="player">
+<div class="card" id="card">
+<div class="card-top">
+<span><span class="eq"><i></i><i></i><i></i></span><span id="posLbl">0 / 0</span></span>
+<span class="pills">
+<button class="pill" id="starBtn">&#x2605; Star</button>
+<button class="pill" id="knownBtn">&#x2713; Known</button>
+</span>
+</div>
+<div class="stage">
+<div class="tag" id="tagLbl"></div>
+<div class="word" id="wordEl"></div>
+<div class="meaning" id="meaningEl"></div>
+<div class="example" id="exampleEl"></div>
+<div class="hint">Tap the card to reveal</div>
+</div>
+<div class="empty">
+<h2>Load your vocabulary</h2>
+<p>Pull every tab of your Google Sheet in one tap. Words are grouped by book and unit, and the player reads each English word and its Uzbek meaning aloud.</p>
+<div class="actions" style="margin-top:0">
+<button class="btn" id="emptySync">Load from Google Sheet</button>
+<button class="btn ghost" id="emptyImport">Import a file</button>
+</div>
+<div class="status" id="emptyStatus"></div>
+</div>
+</div>
+<div class="progress"><div id="progFill"></div></div>
+<div class="controls">
+<button class="ctl small" id="shuffleBtn" title="Shuffle" aria-label="Shuffle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
+<button class="ctl" id="prevBtn" title="Previous" aria-label="Previous"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9.5 12z"/></svg></button>
+<button class="ctl play" id="playBtn" aria-label="Play"></button>
+<button class="ctl" id="nextBtn" title="Next" aria-label="Next"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l10.5-7z"/></svg></button>
+<button class="ctl small" id="loopBtn" title="Repeat list" aria-label="Repeat list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></button>
+</div>
+<div class="quick">
+<div class="seg" id="rateSeg">
+<button data-r="0.75">0.75&#xd7;</button><button data-r="1">1&#xd7;</button><button data-r="1.25">1.25&#xd7;</button>
+</div>
+<button class="pill" id="dirBtn" title="Which side is read first">EN &#x2192; UZ</button>
+<button class="pill" id="quizBtn" title="Hide the answer until it is read">Quiz</button>
+<button class="pill" id="sleepBtn">Sleep: off</button>
+<button class="pill" id="bgBtn" title="Real audio track that keeps playing when the screen is locked">&#x1f512; Screen-off</button>
+</div>
+<div class="status" id="bgStatus"></div>
+<div class="keys"><kbd>Space</kbd> play/pause &#xb7; <kbd>&#x2190;</kbd><kbd>&#x2192;</kbd> prev/next &#xb7; <kbd>S</kbd> star &#xb7; <kbd>K</kbd> known &#xb7; <kbd>R</kbd> reveal</div>
+</section>
+<section class="listpane">
+<div class="list-head">
+<div class="tabs" id="modeTabs">
+<button data-m="all">All words</button>
+<button data-m="last1">Latest unit</button>
+<button data-m="last3">Last 3 units</button>
+<button data-m="book">One book</button>
+</div>
+<div class="scope">
+<select id="bookSel" aria-label="Book"></select>
+<select id="unitSel" aria-label="Unit"></select>
+</div>
+<div id="scopeInfo"></div>
+<input id="search" type="search" placeholder="Search words or meanings" autocomplete="off">
+<div class="tabs" id="tabs">
+<button data-f="all">All<small></small></button>
+<button data-f="learning">Learning<small></small></button>
+<button data-f="star">Starred<small></small></button>
+<button data-f="known">Known<small></small></button>
+</div>
+</div>
+<ul id="list"></ul>
+</section>
+</main>
+</div>
+<!-- Import -->
+<div class="overlay" id="importOv">
+<div class="sheet" role="dialog" aria-label="Import words">
+<div class="sheet-head"><h2>Get your words</h2><button class="icon-btn" data-close aria-label="Close">&#x2715;</button></div>
+<div class="box">
+<h3>From Google Sheets</h3>
+<div class="muted">Reads every tab and finds the &#x201c;eng&#x201d; and &#x201c;uz&#x201d; columns and the &#x201c;Unit&#x201d; rows. Sync again any time you add words.</div>
+<div class="field" style="margin:12px 0 0"><input type="text" id="sheetLink" placeholder="Google Sheet link"></div>
+<div class="actions"><button class="btn" id="sheetSyncBtn">Sync from Google Sheet</button></div>
+<div class="status" id="sheetStatus"></div>
+</div>
+<div class="box">
+<h3>From a file</h3>
+<div class="muted">An .xlsx (Sheets: File &#x2192; Download &#x2192; Microsoft Excel) or .csv file.</div>
+<div class="actions"><label class="btn ghost" style="cursor:pointer">Choose file<input type="file" id="fileIn" accept=".xlsx,.xls,.csv,.tsv,.txt" hidden></label><span class="muted" id="fileInfo"></span></div>
+</div>
+<div class="box">
+<h3>Paste</h3>
+<div class="muted">Select cells in your sheet, copy, and paste here.</div>
+<div class="field" style="margin:10px 0 0"><textarea id="pasteBox" placeholder="revise&#9;qayta ko'rib chiqmoq&#10;argue&#9;bahslashmoq"></textarea></div>
+<div id="mapWrap" style="display:none">
+<div class="grid3" style="margin-top:10px">
+<div><span class="muted">Word</span><select id="colW"></select></div>
+<div><span class="muted">Meaning</span><select id="colM"></select></div>
+<div><span class="muted">Example</span><select id="colE"></select></div>
+</div>
+<label class="check"><input type="checkbox" id="hdrChk"> First row is a header</label>
+<div class="preview" id="preview"></div>
+</div>
+<div class="actions"><button class="btn" id="loadBtn" disabled>Load words</button><span class="muted" id="parseInfo"></span></div>
+</div>
+<div class="muted" style="margin-top:12px">Loading replaces the current list. Stars and &#x201c;known&#x201d; marks are kept.</div>
+</div>
+</div>
+<!-- Settings -->
+<div class="overlay" id="settingsOv">
+<div class="sheet" role="dialog" aria-label="Settings">
+<div class="sheet-head"><h2>Player settings</h2><button class="icon-btn" data-close aria-label="Close">&#x2715;</button></div>
+<div class="field">
+<span class="lbl">Read aloud</span>
+<div class="row"><span>Word</span><label class="switch"><input type="checkbox" data-s="sayWord"><span></span></label></div>
+<div class="row"><span>Spell the word<small>r, e, v, i, s, e</small></span><label class="switch"><input type="checkbox" data-s="spell"><span></span></label></div>
+<div class="row"><span>Meaning</span><label class="switch"><input type="checkbox" data-s="sayMeaning"><span></span></label></div>
+<div class="row"><span>Example sentence<small>If your list has one</small></span><label class="switch"><input type="checkbox" data-s="sayExample"><span></span></label></div>
+<div class="row"><span>Repeat the first side at the end</span><label class="switch"><input type="checkbox" data-s="wordAgain"><span></span></label></div>
+</div>
+<div class="field">
+<span class="lbl">Repeat each word <span class="rangeval" id="repVal"></span></span>
+<input type="range" min="1" max="5" step="1" data-r="repeat">
+</div>
+<div class="field">
+<span class="lbl">Pause between words <span class="rangeval" id="gapVal"></span></span>
+<input type="range" min="0" max="8" step="0.5" data-r="gap">
+</div>
+<div class="field">
+<span class="lbl">Speed <span class="rangeval" id="rateVal"></span></span>
+<input type="range" min="0.5" max="1.5" step="0.05" data-r="rate">
+</div>
+<div class="field" id="engineField" style="display:none">
+<span class="lbl">Voice engine</span>
+<select id="engineSel"><option value="device">Device voices</option><option value="claude">Claude voice</option></select>
+<div style="margin-top:8px" id="claudeVoiceWrap"><select id="claudeVoiceSel"><option value="buttery">Buttery</option><option value="airy">Airy</option><option value="glassy">Glassy</option><option value="rounded">Rounded</option></select></div>
+</div>
+<div class="field">
+<span class="lbl">Screen-off voice</span>
+<select id="bgVoiceSel"><option value="native">iPhone voice (natural)</option><option value="">Offline voice: Standard</option><option value="f2">Offline voice: Female</option><option value="m3">Offline voice: Male (deep)</option></select>
+<div class="muted" style="margin-top:6px">&#x201c;iPhone voice&#x201d; sounds natural: it queues the whole playlist and keeps the app awake with a silent track. If it stops when locked, use an Offline voice, which is a real audio track but sounds robotic.</div>
+</div>
+<div class="field" id="deviceVoiceField">
+<span class="lbl">English voice</span>
+<select id="wordVoiceSel"></select>
+<span class="lbl" style="margin-top:12px">Meaning voice</span>
+<select id="meaningVoiceSel"></select>
+<div class="muted" style="margin-top:6px">&#x201c;Auto&#x201d; picks an Uzbek voice if your device has one, otherwise Turkish (closest to Uzbek Latin), and Russian for Cyrillic text.</div>
+</div>
+<div class="field">
+<div class="row"><span>Keep screen on while playing<small>Phones may stop speech when the screen locks</small></span><label class="switch"><input type="checkbox" data-s="wakeLock"><span></span></label></div>
+</div>
+<div class="actions"><button class="btn ghost" id="resetBtn">Reset stars &amp; known</button></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body>
+</html>

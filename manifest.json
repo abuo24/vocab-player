@@ -1,0 +1,21 @@
+{
+  "name": "Vocab Player",
+  "short_name": "Vocab",
+  "description": "Listen to your English\u2013Uzbek vocabulary like a playlist.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f13",
+  "theme_color": "#0d0f13",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

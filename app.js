@@ -6,7 +6,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const LS={get(k,d){try{const v=localStorage.getItem("vp:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("vp:"+k,JSON.stringify(v))}catch(e){}}};
 const ICON_PLAY='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>';
 const ICON_PAUSE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z"/></svg>';
-const DEFAULT_SHEET="https://docs.google.com/spreadsheets/d/1h5_GkOlQGnab_c-i8scsVCRWQguciDZ0d3EDSaKs99g/edit";
+const DEFAULT_SHEET="https://docs.google.com/spreadsheets/d/1h5_GkOlQGnab_c-i8scsVCRWQguciDZ0d3EDSaKs99g/edit?usp=sharing";
 const GD="Google Drive";
 const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);

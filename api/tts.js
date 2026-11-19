@@ -12,6 +12,7 @@ module.exports = async (req, res) => {
   const q = req.query || {};
   const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
   let lang = String(q.l || "en");
+  if (q.ping) return res.status(200).json({ ok: true, node: process.version });
   if (!text) return res.status(400).json({ error: "No text" });
   if (!LANGS.has(lang)) lang = "en";
 
@@ -26,6 +27,7 @@ module.exports = async (req, res) => {
         encodeURIComponent(text);
       const r = await fetch(url, {
         headers: { "User-Agent": UA, Referer: "https://translate.google.com/" },
+        signal: AbortSignal.timeout(4000),
       });
       const type = r.headers.get("content-type") || "";
       const buf = Buffer.from(await r.arrayBuffer());

@@ -23,6 +23,15 @@ async function handle(req, res) {
   let lang = String(q.l || "en");
   if (q.ping) return res.status(200).json({ ok: true, node: process.version });
   if (!text) return res.status(400).json({ error: "No text" });
+  if (q.probe) {
+    const t0 = Date.now();
+    try {
+      const r = await fetch("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=" + encodeURIComponent(text), { headers: { "User-Agent": UA, Referer: "https://translate.google.com/" }, signal: AbortSignal.timeout(2500) });
+      return res.status(200).json({ status: r.status, type: r.headers.get("content-type"), ms: Date.now() - t0 });
+    } catch (e) {
+      return res.status(200).json({ error: String((e && e.message) || e), ms: Date.now() - t0 });
+    }
+  }
   if (!LANGS.has(lang)) lang = "en";
 
   const order = lang === "uz" ? ["uz", "tr"] : [lang];

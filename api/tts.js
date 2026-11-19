@@ -45,7 +45,14 @@ function get(url, ms) {
 module.exports = async (req, res) => {
   res.setHeader("X-Vocab", "1");
   const q = req.query || {};
-  if (q.ping) return res.status(200).json({ ok: true, build: 8 });
+  if (q.ping) {
+    if (q.sleep) await new Promise((r) => setTimeout(r, Math.min(Number(q.sleep) || 0, 8000)));
+    if (q.g) {
+      const r = await get("https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=hello", 3000);
+      return res.status(200).json({ g: { status: r.status, type: r.type, bytes: r.body ? r.body.length : 0, error: r.error } });
+    }
+    return res.status(200).json({ ok: true, build: 9 });
+  }
 
   const text = String(q.t || "").replace(/\s+/g, " ").trim().slice(0, 200);
   let lang = String(q.l || "en");

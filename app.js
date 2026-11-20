@@ -10,7 +10,7 @@ const DEFAULT_SHEET="https://docs.google.com/spreadsheets/d/1h5_GkOlQGnab_c-i8sc
 const GD="Google Drive";
 const XLSX_MIME="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
-const defaults={rate:1,gap:1.5,repeat:1,sayWord:true,spell:false,sayMeaning:true,sayExample:true,wordAgain:false,wordVoice:"",meaningVoice:"auto",engine:"device",claudeVoice:"buttery",wakeLock:true,bg:IS_IOS,bgVoice:"natural",ttsG:"f",shuffle:false,loop:true,filter:"all",quiz:false,dir:"en",mode:"all",book:"all",unit:"all",sheetLink:DEFAULT_SHEET,synced:false,lastSync:0};
+const defaults={rate:1,gap:1.5,ansGap:1,repeat:1,sayWord:true,spell:false,sayMeaning:true,sayExample:true,wordAgain:false,wordVoice:"",meaningVoice:"auto",engine:"device",claudeVoice:"buttery",wakeLock:true,bg:IS_IOS,bgVoice:"natural",ttsG:"f",shuffle:false,loop:true,filter:"all",quiz:false,dir:"en",mode:"all",book:"all",unit:"all",sheetLink:DEFAULT_SHEET,synced:false,lastSync:0};
 const savedS=LS.get("settings",{});
 const S=Object.assign({},defaults,savedS);
 if(S.parseV!==2){S.lastSync=0;S.parseV=2}
@@ -176,14 +176,15 @@ if(!it){pause();return}
 renderCard();
 const steps=stepsFor(it),ans=answerKind();
 for(let r=0;r<S.repeat;r++){
+let ansDone=false;
 for(const [kind,text] of steps){
 if(!alive(id))return;
 const isAns=(ans==="word"?(kind==="word"||kind==="spell"):kind==="meaning");
-if(isAns&&S.quiz&&!revealed){await wait(2200);if(!alive(id))return;revealed=true;renderCard()}
+if(isAns&&!ansDone){ansDone=true;setPart("");await wait(S.ansGap*1000);if(!alive(id))return;if(S.quiz&&!revealed){revealed=true;renderCard()}}
 setPart(kind);
 await say(text,kind);
 if(!alive(id))return;
-await wait(kind==="word"?450:300);
+await wait(200);
 }
 if(r<S.repeat-1){await wait(700);if(!alive(id))return}
 }
@@ -394,18 +395,19 @@ marks.push({t:len/SR,qi,part:"",reveal:!S.quiz});
 let shown=!S.quiz;
 const steps=stepsFor(it);
 for(let r=0;r<S.repeat;r++){
+let ansDone=false;
 for(const [kind,text] of steps){
 const isAns=(ans==="word"?(kind==="word"||kind==="spell"):kind==="meaning");
-if(isAns&&!shown){sil(2.2);shown=true}
+if(isAns&&!ansDone){ansDone=true;sil(S.ansGap);shown=true}
 marks.push({t:len/SR,qi,part:kind,reveal:shown});
 const c=await getClip(ms,text,kind);if(c.length){segs.push(c);len+=c.length}
 await wait(0);if(id!==T.buildId)return null;
-sil(kind==="word"?0.45:0.3);
+sil(0.2);
 }
 if(r<S.repeat-1)sil(0.7);
 }
 marks.push({t:len/SR,qi,part:"",reveal:true});
-sil(Math.max(0.3,S.gap));
+sil(Math.max(0.2,S.gap));
 }
 if(!len)return null;
 return {url:URL.createObjectURL(wavBlob(segs,len)),marks,items,dur:len/SR};
@@ -589,9 +591,10 @@ let shown=!S.quiz;
 const steps=stepsFor(it);
 let firstDone=false;
 for(let r=0;r<S.repeat;r++){
+let ansDone=false;
 for(const [kind,text] of steps){
 const isAns=(ans==="word"?(kind==="word"||kind==="spell"):kind==="meaning");
-if(isAns&&!shown){qSilence(2.2,firstDone?null:mark("",false));firstDone=true;shown=true}
+if(isAns&&!ansDone){ansDone=true;if(S.ansGap>=0.3)qSilence(S.ansGap,(firstDone||shown)?null:mark("",false));firstDone=true;shown=true}
 qUtter(text,kind,mark(kind,shown));firstDone=true;
 }
 if(r<S.repeat-1)qSilence(0.6);
@@ -673,7 +676,9 @@ document.querySelectorAll("#list li.cur").forEach(li=>li.classList.remove("cur")
 const li=document.querySelector(`#list li[data-i="${cur}"]`);
 if(li){li.classList.add("cur");if(scroll&&window.innerWidth>=900)li.scrollIntoView({block:"nearest"})}
 }
-function renderAll(){renderScope();renderControls();renderCard();renderList()}
+const fmtS=v=>(Math.round(v*10)/10)+"s";
+function renderDelays(){const a=$("#dAns"),b=$("#dGap");if(a)a.textContent=fmtS(S.ansGap);if(b)b.textContent=fmtS(S.gap);const l=$("#dAnsLbl");if(l)l.textContent=S.dir==="en"?"Word \u2192 translation":"Translation \u2192 word"}
+function renderAll(){renderScope();renderControls();renderCard();renderList();renderDelays()}
 let toastT;
 function toast(msg){const t=$("#toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),2600)}
 /* ---------- marks ---------- */
@@ -1059,7 +1064,7 @@ mv.value=S.meaningVoice;if(mv.value!==S.meaningVoice)mv.value="auto";
 function syncSettingsUI(){
 document.querySelectorAll("[data-s]").forEach(el=>{el.checked=!!S[el.dataset.s]});
 document.querySelectorAll("input[data-r]").forEach(el=>{el.value=S[el.dataset.r]});
-$("#repVal").textContent=S.repeat+"\u00d7";$("#gapVal").textContent=S.gap+" s";$("#rateVal").textContent=(+S.rate).toFixed(2)+"\u00d7";
+$("#repVal").textContent=S.repeat+"\u00d7";$("#gapVal").textContent=S.gap+" s";$("#ansGapVal").textContent=S.ansGap+" s";renderDelays();$("#rateVal").textContent=(+S.rate).toFixed(2)+"\u00d7";
 $("#engineField").style.display=claudeTTS?"block":"none";
 if(!claudeTTS&&S.engine==="claude")S.engine="device";
 $("#bgVoiceSel").value=S.bgVoice||"";$("#ttsGSel").value=S.ttsG==="m"?"m":"f";
@@ -1098,7 +1103,14 @@ $("#nextBtn").onclick=()=>jump(1);
 $("#shuffleBtn").onclick=()=>{invalidateBg();S.shuffle=!S.shuffle;saveS();buildQueue();renderAll();toast(S.shuffle?"Shuffle on":"Shuffle off")};
 $("#loopBtn").onclick=()=>{invalidateBg();S.loop=!S.loop;saveS();renderControls();toast(S.loop?"Repeat list on":"Stop at the end")};
 $("#quizBtn").onclick=()=>{invalidateBg();S.quiz=!S.quiz;saveS();revealed=!S.quiz;renderControls();renderCard();toast(S.quiz?(S.dir==="en"?"Quiz: Uzbek hidden until read":"Quiz: English hidden until read"):"Quiz off")};
-$("#dirBtn").onclick=()=>{invalidateBg();S.dir=S.dir==="en"?"uz":"en";saveS();revealed=!S.quiz;renderControls();renderCard();toast(S.dir==="en"?"English first":"Uzbek first: try to recall the English")};
+$("#dirBtn").onclick=()=>{invalidateBg();S.dir=S.dir==="en"?"uz":"en";saveS();revealed=!S.quiz;renderControls();renderCard();renderDelays();toast(S.dir==="en"?"English first":"Uzbek first: try to recall the English")};
+document.querySelectorAll("[data-delay]").forEach(b=>b.addEventListener("click",()=>{
+const k=b.dataset.delay,step=+b.dataset.step;
+const v=Math.max(0,Math.min(10,Math.round((S[k]+step)*10)/10));
+if(v===S[k])return;
+S[k]=v;saveS();renderDelays();
+if(S.bg&&(T.tracks.length||T.building||NQ.active)){const was=playing;invalidateBg();if(was)play()}
+}));
 $("#sleepBtn").onclick=()=>{const i=SLEEP_STEPS.indexOf(sleepMins);setSleep(SLEEP_STEPS[(i+1)%SLEEP_STEPS.length])};
 $("#rateSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;invalidateBg();S.rate=+b.dataset.r;saveS();renderControls();applyRateLive()});
 $("#starBtn").onclick=e=>{e.stopPropagation();toggleMark(star)};

@@ -1064,7 +1064,7 @@ mv.value=S.meaningVoice;if(mv.value!==S.meaningVoice)mv.value="auto";
 function syncSettingsUI(){
 document.querySelectorAll("[data-s]").forEach(el=>{el.checked=!!S[el.dataset.s]});
 document.querySelectorAll("input[data-r]").forEach(el=>{el.value=S[el.dataset.r]});
-$("#repVal").textContent=S.repeat+"\u00d7";$("#gapVal").textContent=S.gap+" s";$("#ansGapVal").textContent=S.ansGap+" s";renderDelays();$("#rateVal").textContent=(+S.rate).toFixed(2)+"\u00d7";
+$("#repVal").textContent=S.repeat+"\u00d7";renderDelays();$("#rateVal").textContent=(+S.rate).toFixed(2)+"\u00d7";
 $("#engineField").style.display=claudeTTS?"block":"none";
 if(!claudeTTS&&S.engine==="claude")S.engine="device";
 $("#bgVoiceSel").value=S.bgVoice||"";$("#ttsGSel").value=S.ttsG==="m"?"m":"f";

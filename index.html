@@ -77,10 +77,6 @@
 <button class="pill" id="sleepBtn">Sleep: off</button>
 <button class="pill" id="bgBtn" title="Real audio track that keeps playing when the screen is locked">&#x1f512; Screen-off</button>
 </div>
-<div class="delays">
-<div class="dl"><span id="dAnsLbl">Word &#x2192; translation</span><div class="stp"><button data-delay="ansGap" data-step="-0.5" aria-label="Shorter">&#x2212;</button><b id="dAns">1s</b><button data-delay="ansGap" data-step="0.5" aria-label="Longer">+</button></div></div>
-<div class="dl"><span>Next word</span><div class="stp"><button data-delay="gap" data-step="-0.5" aria-label="Shorter">&#x2212;</button><b id="dGap">1.5s</b><button data-delay="gap" data-step="0.5" aria-label="Longer">+</button></div></div>
-</div>
 <div class="status" id="bgStatus"></div>
 <div class="keys"><kbd>Space</kbd> play/pause &#xb7; <kbd>&#x2190;</kbd><kbd>&#x2192;</kbd> prev/next &#xb7; <kbd>S</kbd> star &#xb7; <kbd>K</kbd> known &#xb7; <kbd>R</kbd> reveal</div>
 </section>
@@ -161,12 +157,11 @@
 <input type="range" min="1" max="5" step="1" data-r="repeat">
 </div>
 <div class="field">
-<span class="lbl">Pause before translation <span class="rangeval" id="ansGapVal"></span></span>
-<input type="range" min="0" max="10" step="0.5" data-r="ansGap">
+<span class="lbl">Delays</span>
+<div class="delays">
+<div class="dl"><span id="dAnsLbl">Word &#x2192; translation</span><div class="stp"><button data-delay="ansGap" data-step="-0.5" aria-label="Shorter">&#x2212;</button><b id="dAns">1s</b><button data-delay="ansGap" data-step="0.5" aria-label="Longer">+</button></div></div>
+<div class="dl"><span>Next word</span><div class="stp"><button data-delay="gap" data-step="-0.5" aria-label="Shorter">&#x2212;</button><b id="dGap">1.5s</b><button data-delay="gap" data-step="0.5" aria-label="Longer">+</button></div></div>
 </div>
-<div class="field">
-<span class="lbl">Pause between words <span class="rangeval" id="gapVal"></span></span>
-<input type="range" min="0" max="10" step="0.5" data-r="gap">
 </div>
 <div class="field">
 <span class="lbl">Speed <span class="rangeval" id="rateVal"></span></span>

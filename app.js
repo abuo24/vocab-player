@@ -13,6 +13,7 @@ const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==="
 const defaults={rate:1,gap:1.5,repeat:1,sayWord:true,spell:false,sayMeaning:true,sayExample:true,wordAgain:false,wordVoice:"",meaningVoice:"auto",engine:"device",claudeVoice:"buttery",wakeLock:true,bg:IS_IOS,bgVoice:"natural",ttsG:"f",shuffle:false,loop:true,filter:"all",quiz:false,dir:"en",mode:"all",book:"all",unit:"all",sheetLink:DEFAULT_SHEET,synced:false,lastSync:0};
 const savedS=LS.get("settings",{});
 const S=Object.assign({},defaults,savedS);
+if(S.parseV!==2){S.lastSync=0;S.parseV=2}
 if(!savedS.bgv3){S.bgVoice="natural";S.bgv2=true;S.bgv3=true}
 if(!("mode" in savedS))S.mode=(S.book&&S.book!=="all")?"book":"all";
 const saveS=()=>LS.set("settings",S);
@@ -29,7 +30,7 @@ let claudeTTS=null,mcp=null;
 const card=$("#card");
 /* ---------- scope & queue ---------- */
 let recentCache={};
-const RECENT={last1:1,last3:3};
+const RECENT={last1:1,last3:3,last5:5};
 function recentSet(b,n){const k=b+"|"+n;if(!recentCache[k])recentCache[k]=new Set(units(b).slice(-n));return recentCache[k]}
 function inRecent(it,n){const set=recentSet(it.b,n);return set.size?set.has(it.u):true}
 function inScope(it){
@@ -81,7 +82,7 @@ function units(b){const s=[];words.forEach(w=>{if(w.b===b&&w.u&&!s.includes(w.u)
 function validateScope(){
 recentCache={};
 const bs=books();
-if(!["all","last1","last3","book"].includes(S.mode))S.mode="all";
+if(!["all","last1","last3","last5","book"].includes(S.mode))S.mode="all";
 if(!bs.length&&S.mode!=="all")S.mode="all";
 if(!bs.includes(S.book)){S.book=bs[0]||"all";S.unit="all"}
 if(S.unit!=="all"&&!RECENT[S.unit]&&!units(S.book).includes(S.unit))S.unit="all";
@@ -642,7 +643,7 @@ document.querySelectorAll("#modeTabs button").forEach(b=>b.classList.toggle("on"
 bSel.innerHTML=bs.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join("");
 bSel.value=S.book;
 const us=units(S.book);
-uSel.innerHTML=`<option value="all">All units</option>`+(us.length?`<option value="last1">Latest unit</option><option value="last3">Last 3 units</option>`:"")+us.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
+uSel.innerHTML=`<option value="all">All units</option>`+(us.length?`<option value="last1">Latest unit</option><option value="last3">Last 3 units</option><option value="last5">Last 5 units</option>`:"")+us.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join("");
 uSel.value=S.unit;uSel.disabled=!us.length;
 $(".scope").style.display=(bs.length&&S.mode==="book")?"grid":"none";
 $("#scopeInfo").textContent=scopeInfo();
@@ -709,7 +710,8 @@ return true;
 const RX_W=/^(word|words|term|vocab|vocabulary|english|eng|en|so['\u2018\u2019`]?z|\u0441\u043b\u043e\u0432\u043e)\s*$/i;
 const RX_M=/^(meaning|meanings|definition|translation|uzbek|o['\u2018\u2019`]?zbek(cha)?|uz|uzb|russian|tarjima|ma['\u2018\u2019`]?no(si)?|\u043f\u0435\u0440\u0435\u0432\u043e\u0434|\u0437\u043d\u0430\u0447\u0435\u043d\u0438\u0435)\s*$/i;
 const RX_E=/^(example|examples|sentence|usage|misol|\u043f\u0440\u0438\u043c\u0435\u0440)\s*$/i;
-const RX_UNIT=/^(unit|lesson|chapter|part|topic|day|week|module|dars|bo['\u2018\u2019`]?lim)\s*[\w.\-]{0,8}\s*$/i;
+const RX_UNIT=/^(?:(?:unit|lesson|chapter|part|topic|day|week|module|dars|bo['\u2018\u2019`]?lim)\s*[\w.\-]{0,8}|(?:uni[a-z]|un[a-z]t|u[a-z]it|[a-z]nit|unti)\.?\s*\d{1,3}[a-z]?|\d{1,3}[a-z]?)\s*$/i;
+function normUnit(w){w=String(w).replace(/\s+/g," ").trim();const m=w.match(/^(?:uni[a-z]|un[a-z]t|u[a-z]it|[a-z]nit|unti)\.?\s*(\d{1,3}[a-z]?)$/i)||w.match(/^(\d{1,3}[a-z]?)$/i);if(m)return "Unit "+m[1].toUpperCase();return w.replace(/^\w/,c=>c.toUpperCase())}
 function prettyBook(name){
 const n=String(name).replace(/^vocabulary[_\s-]*/i,"").replace(/[_-]+/g," ").trim()||String(name);
 return n.replace(/\b\w/g,c=>c.toUpperCase());
@@ -733,7 +735,7 @@ let unit="";const out=[];
 for(let i=start;i<rows.length;i++){
 const r=rows[i],w=r[wc]||"",m=mc>=0?(r[mc]||""):"",e=ec>=0?(r[ec]||""):"";
 if(!w)continue;
-if(!m&&RX_UNIT.test(w)){unit=w.replace(/\s+/g," ").replace(/^\w/,c=>c.toUpperCase());continue}
+if(!m&&RX_UNIT.test(w)){unit=normUnit(w);continue}
 if(!m&&mc>=0)continue;
 out.push({w,m,e,b:book,u:unit});
 }
@@ -1000,7 +1002,7 @@ let unit="";const out=[];
 rows.forEach(r=>{
 const W=(r[w]||"").trim(),M=m>=0?(r[m]||"").trim():"",E=e>=0?(r[e]||"").trim():"";
 if(!W)return;
-if(!M&&RX_UNIT.test(W)){unit=W;return}
+if(!M&&RX_UNIT.test(W)){unit=normUnit(W);return}
 out.push({w:W,m:M,e:E,b:unit?"Pasted":"",u:unit});
 });
 return out;
@@ -1108,7 +1110,7 @@ const b=e.target.closest("button");if(!b||b.dataset.m===S.mode)return;
 S.mode=b.dataset.m;
 if(S.mode==="book"&&!books().includes(S.book)){S.book=books()[0]||"all";S.unit="all"}
 saveS();rescope();
-const n=queue.length,names={all:"All words",last1:"Latest unit of every book",last3:"Last 3 units of every book",book:S.book};
+const n=queue.length,names={all:"All words",last1:"Latest unit of every book",last3:"Last 3 units of every book",last5:"Last 5 units of every book",book:S.book};
 toast(`${names[S.mode]} \u00b7 ${n} words`);
 });
 $("#unitSel").addEventListener("change",e=>{S.unit=e.target.value;saveS();rescope()});
